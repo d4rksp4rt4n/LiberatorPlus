@@ -9,6 +9,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <dxgi.h>
+#include <d3d11.h>
 #include "zoom.h"
 #include "centroid.h"
 
@@ -463,13 +464,79 @@ static DWORD *iat_slot(IMAGE_NT_HEADERS *nt, const char *dll, const char *func) 
     return 0;
 }
 
+/* ---- BlackWallFix: some stages have invisible depth-only meshes (drawn with no pixel shader into
+   the scene) placed exactly on walls. Whichever rasterizes a hair closer wins, so parts of those
+   walls fail the depth test and stay black, changing with the camera (vanilla bug). Such draws get
+   a rasterizer state with a small depth bias: the real wall always wins, and the invisible mesh
+   still hides what is really behind it. Shadow-map draws (no colour target) are left alone. ---- */
+typedef void(STDMETHODCALLTYPE *PSSet)(void *, void *, void *const *, UINT);
+typedef void(STDMETHODCALLTYPE *DrawIdx)(void *, UINT, UINT, INT);
+typedef void(STDMETHODCALLTYPE *OMSet)(void *, UINT, void *const *, void *);
+typedef void(STDMETHODCALLTYPE *OMSetUAV)(void *, UINT, void *const *, void *, UINT, UINT, void *const *, const UINT *);
+typedef void(STDMETHODCALLTYPE *RSSet)(void *, void *);
+typedef HRESULT(STDMETHODCALLTYPE *CreateRS)(void *, const D3D11_RASTERIZER_DESC *, void **);
+static PSSet pss_orig;
+static DrawIdx di_orig;
+static OMSet oms_orig;
+static OMSetUAV omu_orig;
+static RSSet rss_orig;
+static void *g_dev, *cur_ps, *cur_rs;
+static int cur_rt, wall_on;
+static volatile LONG wall_draws;
+static struct { void *orig, *biased; } rs_cache[64];
+static int rs_n;
+
+static void *biased_rs(void *rs) {
+    D3D11_RASTERIZER_DESC d = {D3D11_FILL_SOLID, D3D11_CULL_BACK, FALSE, 0, 0.f, 0.f, TRUE, FALSE, FALSE, FALSE};
+    void *out = 0; int i;
+    for (i = 0; i < rs_n; i++) if (rs_cache[i].orig == rs) return rs_cache[i].biased;
+    if (rs_n == 64) return 0;
+    if (rs) ((void(STDMETHODCALLTYPE *)(void *, D3D11_RASTERIZER_DESC *))(*(void ***)rs)[7])(rs, &d);  /* GetDesc */
+    d.DepthBias += 64;                        /* D24: 64 / 2^24 - the fights seen were ~4 units */
+    d.SlopeScaledDepthBias += 1.0f;
+    if (FAILED(((CreateRS)(*(void ***)g_dev)[22])(g_dev, &d, &out))) out = 0;
+    if (rs) ((ULONG(STDMETHODCALLTYPE *)(void *))(*(void ***)rs)[1])(rs);   /* keep it alive: no address reuse */
+    rs_cache[rs_n].orig = rs; rs_cache[rs_n++].biased = out;
+    return out;
+}
+
+static void STDMETHODCALLTYPE pss_hook(void *c, void *ps, void *const *ci, UINT n) { cur_ps = ps; pss_orig(c, ps, ci, n); }
+static void STDMETHODCALLTYPE rss_hook(void *c, void *rs) { cur_rs = rs; rss_orig(c, rs); }
+static void STDMETHODCALLTYPE oms_hook(void *c, UINT n, void *const *rt, void *ds) { cur_rt = n && rt && rt[0]; oms_orig(c, n, rt, ds); }
+static void STDMETHODCALLTYPE omu_hook(void *c, UINT n, void *const *rt, void *ds, UINT a, UINT b, void *const *u, const UINT *ic) {
+    if (n != D3D11_KEEP_RENDER_TARGETS_AND_DEPTH_STENCIL) cur_rt = n && rt && rt[0];
+    omu_orig(c, n, rt, ds, a, b, u, ic);
+}
+static void STDMETHODCALLTYPE di_hook(void *c, UINT cnt, UINT start, INT bv) {
+    void *b;
+    if (wall_on && !cur_ps && cur_rt && (b = biased_rs(cur_rs))) {
+        rss_orig(c, b); di_orig(c, cnt, start, bv); rss_orig(c, cur_rs);
+        wall_draws++;
+        return;
+    }
+    di_orig(c, cnt, start, bv);
+}
+
+static void hook_slot(void **vt, int i, void *hook, void **orig) {
+    if (vt[i] != hook) { *orig = vt[i]; put((BYTE *)&vt[i], &hook, 4); }
+}
+
 static HRESULT WINAPI dev_hook(void *ad, int type, HMODULE sw, UINT fl, const void *lv, UINT n, UINT sdk,
                                void **dev, void *got, void **ctx) {
     HRESULT r = dev_orig(ad, type, sw, fl, lv, n, sdk, dev, got, ctx);
     if (SUCCEEDED(r) && dev && *dev) {
-        void **vt = *(void ***)*dev, *hook = (void *)ps_hook;
-        if (vt[15] != hook) { ps_orig = (CreatePS)vt[15]; put((BYTE *)&vt[15], &hook, 4); }  /* CreatePixelShader */
-        say("MSAAFix: D3D11 device hooked\n"); save_log();
+        void **vt = *(void ***)*dev;
+        g_dev = *dev;
+        hook_slot(vt, 15, (void *)ps_hook, (void **)&ps_orig);                /* CreatePixelShader */
+        if (wall_on && ctx && *ctx) {
+            void **cv = *(void ***)*ctx;                                     /* ID3D11DeviceContext */
+            hook_slot(cv, 9, (void *)pss_hook, (void **)&pss_orig);           /* PSSetShader */
+            hook_slot(cv, 12, (void *)di_hook, (void **)&di_orig);            /* DrawIndexed */
+            hook_slot(cv, 33, (void *)oms_hook, (void **)&oms_orig);          /* OMSetRenderTargets */
+            hook_slot(cv, 34, (void *)omu_hook, (void **)&omu_orig);          /* ...AndUnorderedAccessViews */
+            hook_slot(cv, 43, (void *)rss_hook, (void **)&rss_orig);          /* RSSetState */
+        }
+        say("D3D11 device hooked%s\n", wall_on && ctx && *ctx ? " (BlackWallFix active)" : ""); save_log();
     }
     return r;
 }
@@ -654,6 +721,7 @@ static void install(HMODULE self) {
         else say("MaxResolution=%dx%d: %s\n", res_w, res_h, v ? "on" : "SKIPPED - unexpected exe bytes (other game version?)");
         say("Screen Size menu index check: %s\n", fix_res_clamp() ? "on" : "SKIPPED - unexpected exe bytes");
     }
+    wall_on = opt("BlackWallFix", 1); say("BlackWallFix=%d: %s\n", wall_on, wall_on ? "on" : "off");
     v = opt("MSAAFix", 1);        report("MSAAFix", v, fix_msaa(v, nt));
     v = opt("ShadowResolution", 0);
     if (!v) say("ShadowResolution: off (MeigeAppWin.cfg left as it is)\n");
@@ -687,6 +755,7 @@ BOOL WINAPI DllMain(HINSTANCE self, DWORD reason, LPVOID res) {
     if (reason == DLL_PROCESS_DETACH && ps_orig) {
         say("Shaders: %ld pixel shaders patched (MSAAFix), %ld creations failed; D3DCompile %ld calls, %ld failed\n",
             ps_patched, ps_failed, cc_calls, cc_failed);
+        if (wall_on) say("BlackWallFix: %ld depth-only draws biased, %d rasterizer states\n", wall_draws, rs_n);
         save_log();
     }
     return TRUE;
