@@ -1,0 +1,30 @@
+# 3dmigoto-hash upscale (DeploymentRoot/4X/fix) -> game CG name
+# not CGs: 0834AE9B, 230DCD60 (Criware / Meteorise logos)
+D2E660F6 advstill1_01
+F673DF96 advstill1_01_2
+5E64042E advstill1_03
+F6E8E09D advstill1_04
+267C95BE advstill1_04_2
+058FF9EF advstill2_06
+006AB931 advstill2_07
+9C86CCEE advstill3_11
+2177C5A9 advstill3_12
+2532185B advstill4_13
+561ABCFB advstill4_14
+2CB4FA48 advstill4_15
+3AD6F5EE advstill5_17A
+8DECB8CD advstill5_17B1
+BE342DBA advstill5_19A1
+2C9BE67E advstill5_19A2
+CA7AA4A7 advstill5_19B
+2D1F4D5D advstill5_19B2
+B4E9C5D2 advstill5_20A1
+10E02F24 advstill5_20A2
+F35B5248 advstill5_20B2
+C197A719 advstill5_20B3
+08180FEB advstill5_20B3_2
+A3B70709 advstill_novel_RINMAN
+30FF37A2 advstill_novel_RINMOM
+8833AA5E advstill_novel_RINRAN
+751BFF93 advstill_shrine
+advstill_chairman advstill_chairman

@@ -1,0 +1,25 @@
+# Copies of game files, originals and generated output (large; game data stays out of the repo)
+backup/
+extract/
+out_*/
+orig_png*/
+upscayl_*/
+ups/
+dumps/
+_3dmigoto_off/
+Menu/
+fixes/
+tests/*.bin
+bisect/*.exe
+memlog*.csv
+
+# Third-party tool (DirectXTex texconv, used by miptool/textool/repack): put it in tools/
+tools/
+
+# Build output
+physfix/*.dll
+physfix/*.exe
+physfix/*.obj
+physfix/*.lib
+physfix/*.exp
+__pycache__/
