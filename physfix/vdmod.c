@@ -470,19 +470,19 @@ static DWORD *iat_slot(IMAGE_NT_HEADERS *nt, const char *dll, const char *func) 
    a rasterizer state with a small depth bias: the real wall always wins, and the invisible mesh
    still hides what is really behind it. Shadow-map draws (no colour target) are left alone. ---- */
 typedef void(STDMETHODCALLTYPE *PSSet)(void *, void *, void *const *, UINT);
-typedef void(STDMETHODCALLTYPE *DrawIdx)(void *, UINT, UINT, INT);
 typedef void(STDMETHODCALLTYPE *OMSet)(void *, UINT, void *const *, void *);
 typedef void(STDMETHODCALLTYPE *OMSetUAV)(void *, UINT, void *const *, void *, UINT, UINT, void *const *, const UINT *);
 typedef void(STDMETHODCALLTYPE *RSSet)(void *, void *);
+typedef void(STDMETHODCALLTYPE *ClearSt)(void *);
 typedef HRESULT(STDMETHODCALLTYPE *CreateRS)(void *, const D3D11_RASTERIZER_DESC *, void **);
 static PSSet pss_orig;
-static DrawIdx di_orig;
 static OMSet oms_orig;
 static OMSetUAV omu_orig;
 static RSSet rss_orig;
-static void *g_dev, *cur_ps, *cur_rs;
+static ClearSt cls_orig;
+static void *g_dev, *cur_ps, *cur_rs, *set_rs;   /* set_rs: the state really set (cur_rs or its biased copy) */
 static int cur_rt, wall_on;
-static volatile LONG wall_draws;
+static volatile LONG wall_sets, n_rss, n_om, n_pss;
 static struct { void *orig, *biased; } rs_cache[64];
 static int rs_n;
 
@@ -500,21 +500,21 @@ static void *biased_rs(void *rs) {
     return out;
 }
 
-static void STDMETHODCALLTYPE pss_hook(void *c, void *ps, void *const *ci, UINT n) { cur_ps = ps; pss_orig(c, ps, ci, n); }
-static void STDMETHODCALLTYPE rss_hook(void *c, void *rs) { cur_rs = rs; rss_orig(c, rs); }
-static void STDMETHODCALLTYPE oms_hook(void *c, UINT n, void *const *rt, void *ds) { cur_rt = n && rt && rt[0]; oms_orig(c, n, rt, ds); }
-static void STDMETHODCALLTYPE omu_hook(void *c, UINT n, void *const *rt, void *ds, UINT a, UINT b, void *const *u, const UINT *ic) {
-    if (n != D3D11_KEEP_RENDER_TARGETS_AND_DEPTH_STENCIL) cur_rt = n && rt && rt[0];
-    omu_orig(c, n, rt, ds, a, b, u, ic);
+/* The draw methods can't be hooked (the runtime rewrites those entries of the context's private
+   method table), so the bias follows the state instead: whenever no pixel shader and a colour
+   target are bound, the biased copy of the game's rasterizer state is the one set. */
+static void wall_apply(void *c) {
+    void *want = cur_rs, *b;
+    if (!cur_ps && cur_rt && (b = biased_rs(cur_rs))) want = b;
+    if (want != set_rs) { rss_orig(c, want); if (want != cur_rs) wall_sets++; set_rs = want; }
 }
-static void STDMETHODCALLTYPE di_hook(void *c, UINT cnt, UINT start, INT bv) {
-    void *b;
-    if (wall_on && !cur_ps && cur_rt && (b = biased_rs(cur_rs))) {
-        rss_orig(c, b); di_orig(c, cnt, start, bv); rss_orig(c, cur_rs);
-        wall_draws++;
-        return;
-    }
-    di_orig(c, cnt, start, bv);
+static void STDMETHODCALLTYPE cls_hook(void *c) { cls_orig(c); cur_ps = cur_rs = set_rs = 0; cur_rt = 0; }
+static void STDMETHODCALLTYPE pss_hook(void *c, void *ps, void *const *ci, UINT n) { n_pss++; pss_orig(c, ps, ci, n); cur_ps = ps; wall_apply(c); }
+static void STDMETHODCALLTYPE rss_hook(void *c, void *rs) { n_rss++; cur_rs = rs; set_rs = (void *)-1; wall_apply(c); }
+static void STDMETHODCALLTYPE oms_hook(void *c, UINT n, void *const *rt, void *ds) { n_om++; oms_orig(c, n, rt, ds); cur_rt = n && rt && rt[0]; wall_apply(c); }
+static void STDMETHODCALLTYPE omu_hook(void *c, UINT n, void *const *rt, void *ds, UINT a, UINT b, void *const *u, const UINT *ic) {
+    omu_orig(c, n, rt, ds, a, b, u, ic);
+    if (n != D3D11_KEEP_RENDER_TARGETS_AND_DEPTH_STENCIL) { cur_rt = n && rt && rt[0]; wall_apply(c); }
 }
 
 static void hook_slot(void **vt, int i, void *hook, void **orig) {
@@ -531,10 +531,10 @@ static HRESULT WINAPI dev_hook(void *ad, int type, HMODULE sw, UINT fl, const vo
         if (wall_on && ctx && *ctx) {
             void **cv = *(void ***)*ctx;                                     /* ID3D11DeviceContext */
             hook_slot(cv, 9, (void *)pss_hook, (void **)&pss_orig);           /* PSSetShader */
-            hook_slot(cv, 12, (void *)di_hook, (void **)&di_orig);            /* DrawIndexed */
             hook_slot(cv, 33, (void *)oms_hook, (void **)&oms_orig);          /* OMSetRenderTargets */
             hook_slot(cv, 34, (void *)omu_hook, (void **)&omu_orig);          /* ...AndUnorderedAccessViews */
             hook_slot(cv, 43, (void *)rss_hook, (void **)&rss_orig);          /* RSSetState */
+            hook_slot(cv, 110, (void *)cls_hook, (void **)&cls_orig);         /* ClearState */
         }
         say("D3D11 device hooked%s\n", wall_on && ctx && *ctx ? " (BlackWallFix active)" : ""); save_log();
     }
@@ -755,7 +755,7 @@ BOOL WINAPI DllMain(HINSTANCE self, DWORD reason, LPVOID res) {
     if (reason == DLL_PROCESS_DETACH && ps_orig) {
         say("Shaders: %ld pixel shaders patched (MSAAFix), %ld creations failed; D3DCompile %ld calls, %ld failed\n",
             ps_patched, ps_failed, cc_calls, cc_failed);
-        if (wall_on) say("BlackWallFix: %ld depth-only draws biased, %d rasterizer states\n", wall_draws, rs_n);
+        if (wall_on) say("BlackWallFix: bias set %ld times, %d rasterizer states (calls: RSSetState %ld, OMSetRenderTargets %ld, PSSetShader %ld)\n", wall_sets, rs_n, n_rss, n_om, n_pss);
         save_log();
     }
     return TRUE;
