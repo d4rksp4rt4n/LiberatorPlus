@@ -23,11 +23,8 @@ physfix/*.obj
 physfix/*.lib
 physfix/*.exp
 __pycache__/
-captures/
 
 # RenderDoc captures (hundreds of MB each)
 captures/
 
-# RenderDoc captures
-captures/
 *.rdc
