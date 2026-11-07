@@ -27,3 +27,7 @@ captures/
 
 # RenderDoc captures (hundreds of MB each)
 captures/
+
+# RenderDoc captures
+captures/
+*.rdc
