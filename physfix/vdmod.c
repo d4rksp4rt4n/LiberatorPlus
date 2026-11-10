@@ -635,6 +635,22 @@ __declspec(naked) static void rb_stub(void) {
     }
 }
 
+/* Texture creation job 0x862770 (worker thread, queued at 0x8626c1) passes the texture header
+   [job+78h] to 0x862790, which reads it unchecked. Rarely the header is already cleared when the job
+   runs (game race, seen once entering a stage/cutscene: AV at 0x8627c7). Rewritten in place (same
+   24 bytes incl. padding, same address in both builds) to skip the job then. Always on. */
+static int fix_tex_guard(void) {
+    static const char orig[] = "\x55\x8b\xec\x8b\x4d\x08\xff\x71\x74\xff\x71\x78\xe8\x0f\x00\x00\x00"
+                               "\xb0\x01\x5d\xc3\xcc\xcc\xcc";
+    static const char repl[] = "\x8b\x4c\x24\x04"          /* mov ecx, [esp+4]  (job)      */
+                               "\x83\x79\x78\x00"          /* cmp dword [ecx+78h], 0       */
+                               "\x74\x0b"                  /* je  done                     */
+                               "\xff\x71\x74\xff\x71\x78"  /* push [ecx+74h]; push [ecx+78h] */
+                               "\xe8\x0b\x00\x00\x00"      /* call 0x862790 (thiscall)     */
+                               "\xb0\x01\xc3";             /* done: mov al, 1; ret         */
+    return toggle(0x862770, orig, repl, 24, 1);
+}
+
 /* Options menu (0x730910): the saved Screen Size index of each display mode (window, borderless,
    fullscreen) picks a label from that mode's list without a range check. A size saved while
    MaxResolution was higher (or on another desktop) points past a now shorter list and the menu
@@ -722,6 +738,7 @@ static void install(HMODULE self) {
         else say("MaxResolution=%dx%d: %s\n", res_w, res_h, v ? "on" : "SKIPPED - unexpected exe bytes (other game version?)");
         say("Screen Size menu index check: %s\n", fix_res_clamp() ? "on" : "SKIPPED - unexpected exe bytes");
     }
+    say("Texture job guard: %s\n", fix_tex_guard() ? "on" : "SKIPPED - unexpected exe bytes");
     wall_on = opt("BlackWallFix", 1); say("BlackWallFix=%d: %s\n", wall_on, wall_on ? "on" : "off");
     v = opt("MSAAFix", 1);        report("MSAAFix", v, fix_msaa(v, nt));
     v = opt("ShadowResolution", 0);

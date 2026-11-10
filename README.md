@@ -28,6 +28,7 @@ All fixes are switched in `vdmod.ini`: close the game, edit, start the game agai
 | Gallery | `GalleryHDFit` (HD CGs at screen size), `GalleryZoom` (fit to screen, zoom to 1:1, full panning) |
 | Boot and menus | `SkipIntro`, `FastDlcCheck`, `SkipRoomRanking` (no "Server Connect" box after the Dressing Room) |
 | Memory | `LargeAddressAware` (keeps the 4 GB flag set after Steam updates) |
+| Always on | Crash guards: Screen Size menu after a resolution change, and a rare crash in the game's texture loading |
 
 The game exe on disk is never changed, except for the 4 GB memory flag. Every fix checks the game code before patching it; on an unknown game version that fix is skipped and the rest still work.
 
