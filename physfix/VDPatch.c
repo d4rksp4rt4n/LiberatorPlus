@@ -9,7 +9,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define TITLE "Valkyrie Drive mod"
+#include "version.h"
+#define TITLE MOD_NAME
 
 static int set_laa(const char *exe) {                      /* 1 = set, 2 = was set, 0 = error */
     IMAGE_DOS_HEADER dos; DWORD sig, n; IMAGE_FILE_HEADER fh; HANDLE f = INVALID_HANDLE_VALUE; int i, r = 0;

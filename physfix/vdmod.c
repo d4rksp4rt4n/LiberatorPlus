@@ -12,6 +12,7 @@
 #include <d3d11.h>
 #include "zoom.h"
 #include "centroid.h"
+#include "version.h"
 
 #define VA(x) (base + ((x) - 0x400000))
 static BYTE *base;
@@ -351,7 +352,7 @@ static void laa_check(void) {
             "the game run out of memory.\n\n"
             "Set it now? The game closes, VDPatch.exe sets the flag and starts the game again.\n\n"
             "(No = play without it this time. LargeAddressAware=0 in vdmod.ini turns this check off.)",
-            "Valkyrie Drive mod", MB_YESNO | MB_ICONWARNING | MB_TOPMOST | MB_SETFOREGROUND) != IDYES) {
+            MOD_NAME, MB_YESNO | MB_ICONWARNING | MB_TOPMOST | MB_SETFOREGROUND) != IDYES) {
         say("LargeAddressAware: MISSING in the exe (run VDPatch.exe)\n"); return;
     }
     sprintf_s(patcher, MAX_PATH, "%sVDPatch.exe", dir);
@@ -359,7 +360,7 @@ static void laa_check(void) {
     if (!CreateProcessA(patcher, cmd, 0, 0, FALSE, 0, 0, dir, &si, &pi)) {
         char msg[MAX_PATH + 160]; DWORD e = GetLastError();
         sprintf_s(msg, sizeof msg, "Could not start\n%s\n(Windows error %lu). The game starts without the flag.", patcher, e);
-        MessageBoxA(0, msg, "Valkyrie Drive mod", MB_OK | MB_ICONERROR | MB_TOPMOST);
+        MessageBoxA(0, msg, MOD_NAME, MB_OK | MB_ICONERROR | MB_TOPMOST);
         say("LargeAddressAware: MISSING in the exe, VDPatch.exe could not start (error %lu)\n", e); return;
     }
     say("LargeAddressAware: missing, VDPatch.exe started, game closed\n"); save_log();
@@ -687,7 +688,7 @@ static void install(HMODULE self) {
     GetModuleFileNameA(self, dir, MAX_PATH);
     p = strrchr(dir, '\\'); p[1] = 0;
     sprintf_s(ini, MAX_PATH, "%svdmod.ini", dir);
-    say("Valkyrie Drive mod (dinput8.dll), options from %s\n", ini);
+    say(MOD_NAME " " MOD_VER_STR " (dinput8.dll), options from %s\n", ini);
     nt = (IMAGE_NT_HEADERS *)(base + ((IMAGE_DOS_HEADER *)base)->e_lfanew);
     for (i = 0; i < sizeof builds / sizeof *builds; i++)
         if (nt->FileHeader.TimeDateStamp == builds[i].stamp) bld = &builds[i];
