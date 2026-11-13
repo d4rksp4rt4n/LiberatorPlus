@@ -1,16 +1,10 @@
-/* File properties (Details tab) for dinput8.dll, or VDPatch.exe when compiled with /d PATCHER. */
+/* File properties (Details tab) for dinput8.dll. */
 #include <winver.h>
 #include "version.h"
 
-#ifdef PATCHER
-#define FILE_DESC MOD_NAME " - 4 GB memory flag patcher for VD_BHIKKHUNI.exe"
-#define FILE_NAME "VDPatch.exe"
-#define FILE_TYPE VFT_APP
-#else
 #define FILE_DESC MOD_NAME " - fixes and options for " MOD_GAME
 #define FILE_NAME "dinput8.dll"
 #define FILE_TYPE VFT_DLL
-#endif
 
 VS_VERSION_INFO VERSIONINFO
  FILEVERSION MOD_VER
@@ -30,7 +24,7 @@ BEGIN
             VALUE "FileDescription", FILE_DESC
             VALUE "FileVersion", MOD_VER_STR
             VALUE "CompanyName", MOD_AUTHOR
-            VALUE "LegalCopyright", "(c) " MOD_YEAR " " MOD_AUTHOR ". Free to use, see README."
+            VALUE "LegalCopyright", "(c) " MOD_YEAR " " MOD_NAME ". Free to use, see README."
             VALUE "Comments", MOD_NOTICE
             VALUE "InternalName", FILE_NAME
             VALUE "OriginalFilename", FILE_NAME

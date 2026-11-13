@@ -11,9 +11,10 @@ Author: DarkSpartan
 
 ## Install
 
-1. Copy `dinput8.dll`, `vdmod.ini` and `VDPatch.exe` into the game's `DeploymentRoot` folder, next to `VD_BHIKKHUNI.exe`.
+1. Copy `dinput8.dll`, `vdmod.ini` and `Set4GB.bat` into the game's `DeploymentRoot` folder, next to `VD_BHIKKHUNI.exe`.
 2. Optional packs: copy each pack's `DeploymentRoot` folder over the game's.
-3. Start the game from Steam. On the first start, the mod offers to set the 4 GB memory flag in the game exe; choose Yes and the game restarts by itself.
+3. Double-click `Set4GB.bat`. It sets the 4 GB memory flag in `VD_BHIKKHUNI.exe`, so the 32-bit game can use 4 GB instead of 2 GB (needed with the HD packs). It changes one bit in the exe header, and you can open the file to read exactly what it does. Run it again after any Steam update or "Verify integrity"; the mod reminds you at game start when the flag is missing.
+4. Start the game from Steam.
 
 Always start the game from Steam. Starting `VD_BHIKKHUNI.exe` directly crashes a few seconds in, with or without the mod.
 
@@ -27,7 +28,7 @@ All fixes are switched in `vdmod.ini`: close the game, edit, start the game agai
 | Graphics | `MipFix` (no distant shimmer), `Anisotropy`, `MSAAFix` (no white flashes on thin edges), `BlackWallFix` (no black patches on walls), `ShadowResolution`, `MaxResolution` (fullscreen up to 4K with DSR/VSR) |
 | Gallery | `GalleryHDFit` (HD CGs at screen size), `GalleryZoom` (fit to screen, zoom to 1:1, full panning) |
 | Boot and menus | `SkipIntro`, `FastDlcCheck`, `SkipRoomRanking` (no "Server Connect" box after the Dressing Room) |
-| Memory | `LargeAddressAware` (keeps the 4 GB flag set after Steam updates) |
+| Memory | `LargeAddressAware` (warns at game start when the 4 GB flag is missing, for example after a Steam update) |
 | Always on | Crash guards: Screen Size menu after a resolution change, and a rare crash in the game's texture loading |
 
 The game exe on disk is never changed, except for the 4 GB memory flag. Every fix checks the game code before patching it; on an unknown game version that fix is skipped and the rest still work.
@@ -42,7 +43,7 @@ The game exe on disk is never changed, except for the 4 GB memory flag. Every fi
 
 ## Uninstall
 
-Delete `dinput8.dll`, `vdmod.ini`, `VDPatch.exe` and `vdmod.log` from `DeploymentRoot`, then run **Verify integrity of game files** in Steam. That also puts back the original textures, CGs and movie, and clears the 4 GB flag.
+Delete `dinput8.dll`, `vdmod.ini`, `Set4GB.bat` and `vdmod.log` from `DeploymentRoot`, then run **Verify integrity of game files** in Steam. That also puts back the original textures, CGs and movie, and clears the 4 GB flag.
 
 ## License
 

@@ -1,7 +1,7 @@
 /* dinput8.dll proxy for VD_BHIKKHUNI.exe (Steam, 32-bit): the mod's exe fixes, applied in memory at
    every game start, each switched on/off in vdmod.ini (next to this DLL). The exe on disk stays
    original except for the Large Address Aware flag, which Windows reads before any DLL is loaded:
-   VDPatch.exe sets it, and this DLL offers to run it when a Steam update/verify removed it.
+   Set4GB.bat sets it; this DLL says so when a Steam update/verify removed it.
    Every edit first checks the original bytes; on a mismatch (other game version) that fix is
    skipped. Results of the last start: vdmod.log.   Build: build.bat (MSVC x86). */
 #include <windows.h>
@@ -342,29 +342,17 @@ static int fix_physics(int rate) {
 static BYTE *entry, entry_saved[5];
 
 static void laa_check(void) {
-    char patcher[MAX_PATH], cmd[MAX_PATH + 32];
-    STARTUPINFOA si = {sizeof si}; PROCESS_INFORMATION pi;
     IMAGE_NT_HEADERS *nt = (IMAGE_NT_HEADERS *)(base + ((IMAGE_DOS_HEADER *)base)->e_lfanew);
     if (nt->FileHeader.Characteristics & IMAGE_FILE_LARGE_ADDRESS_AWARE) { say("LargeAddressAware: set in the exe\n"); return; }
-    if (MessageBoxA(0,
-            "VD_BHIKKHUNI.exe is missing the Large Address Aware flag (4 GB of memory instead of 2 GB), "
-            "probably because Steam updated or verified the game. Without it the HD textures can make "
-            "the game run out of memory.\n\n"
-            "Set it now? The game closes, VDPatch.exe sets the flag and starts the game again.\n\n"
-            "(No = play without it this time. LargeAddressAware=0 in vdmod.ini turns this check off.)",
-            MOD_NAME, MB_YESNO | MB_ICONWARNING | MB_TOPMOST | MB_SETFOREGROUND) != IDYES) {
-        say("LargeAddressAware: MISSING in the exe (run VDPatch.exe)\n"); return;
-    }
-    sprintf_s(patcher, MAX_PATH, "%sVDPatch.exe", dir);
-    sprintf_s(cmd, sizeof cmd, "\"%s\" --wait %lu", patcher, GetCurrentProcessId());
-    if (!CreateProcessA(patcher, cmd, 0, 0, FALSE, 0, 0, dir, &si, &pi)) {
-        char msg[MAX_PATH + 160]; DWORD e = GetLastError();
-        sprintf_s(msg, sizeof msg, "Could not start\n%s\n(Windows error %lu). The game starts without the flag.", patcher, e);
-        MessageBoxA(0, msg, MOD_NAME, MB_OK | MB_ICONERROR | MB_TOPMOST);
-        say("LargeAddressAware: MISSING in the exe, VDPatch.exe could not start (error %lu)\n", e); return;
-    }
-    say("LargeAddressAware: missing, VDPatch.exe started, game closed\n"); save_log();
-    TerminateProcess(GetCurrentProcess(), 0);
+    say("LargeAddressAware: MISSING in the exe (run Set4GB.bat)\n");
+    MessageBoxA(0,
+        "VD_BHIKKHUNI.exe is missing the Large Address Aware flag (4 GB of memory instead of 2 GB), "
+        "probably because Steam updated or verified the game. Without it the HD textures can make "
+        "the game run out of memory.\n\n"
+        "To set it: close the game, double-click Set4GB.bat in the game's DeploymentRoot folder, "
+        "then start the game again.\n\n"
+        "OK = play without it this time. (LargeAddressAware=0 in vdmod.ini turns this check off.)",
+        MOD_NAME, MB_OK | MB_ICONWARNING | MB_TOPMOST | MB_SETFOREGROUND);
 }
 
 static void before_game(void) {

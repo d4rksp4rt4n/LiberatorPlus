@@ -9,7 +9,7 @@ if exist "%~dp0backup\Resource" xcopy /e /y /q "%~dp0backup\Resource" "%G%\Deplo
 for %%F in (MeShaderQueCache_WIN.bin MeShaderCache_WIN.bin MeShaderPack_WIN.bin MeigeUtilWinShaderPack.bin) do if exist "%~dp0backup\%%F" copy /y "%~dp0backup\%%F" "%G%\DeploymentRoot\" >nul
 if exist "%~dp0backup\MeigeAppWin.cfg" copy /y "%~dp0backup\MeigeAppWin.cfg" "%G%\DeploymentRoot\" >nul
 copy /y "%~dp0backup\Database\*.bin" "%G%\DeploymentRoot\Resource\Database\" >nul
-for %%F in (dinput8.dll VDPatch.exe vdmod.ini vdmod.log) do if exist "%G%\DeploymentRoot\%%F" del "%G%\DeploymentRoot\%%F"
+for %%F in (dinput8.dll VDPatch.exe Set4GB.bat vdmod.ini vdmod.log) do if exist "%G%\DeploymentRoot\%%F" del "%G%\DeploymentRoot\%%F"
 echo Mod removed: original textures, CGs, shader caches and settings restored, DLL deleted.
 echo Run "Verify integrity of game files" in Steam to clear the 4 GB flag as well.
 pause
