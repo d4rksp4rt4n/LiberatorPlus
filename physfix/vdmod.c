@@ -670,8 +670,25 @@ static int fix_res_clamp(void) {
     return 1;
 }
 
+/* Never offer more than the display can show: the largest mode Windows lists for the primary display
+   (DSR/VSR sizes included once enabled in the driver). Without DSR/VSR that is the desktop size, so
+   the list stays the original one. */
+static void cap_to_display(void) {
+    DEVMODEA dm = {0}; DWORD i; int w = 0, h = 0;
+    dm.dmSize = sizeof dm;
+    for (i = 0; EnumDisplaySettingsA(0, i, &dm); i++)
+        if ((int)(dm.dmPelsWidth * dm.dmPelsHeight) > w * h) { w = dm.dmPelsWidth; h = dm.dmPelsHeight; }
+    if (!w) { say("MaxResolution: display modes unknown, list left as the game builds it\n"); res_w = res_h = 0; return; }
+    if (res_w > w || res_h > h) {
+        say("MaxResolution: largest display mode is %dx%d (enable DSR/VSR in the driver for more)\n", w, h);
+        if (res_w > w) res_w = w;
+        if (res_h > h) res_h = h;
+    }
+}
+
 static int fix_resolution(const char *s) {
     if (sscanf_s(s, "%dx%d", &res_w, &res_h) != 2 || res_w < 640 || res_h < 360 || res_w > 8192 || res_h > 8192) return -1;
+    cap_to_display();
     if (!is(bld->res_site, "\x33\xc0\x66\x89\x43\x16", 6) || !is(0x8599a8, "\x80\x7d\xff\x00\xa1", 5) ||
         !is(0x8599b1, "\x8b\x78\x28\x8b\x58\x2c\x0f\x84", 8) || !is(0x859a17, "\x50\xff\x51\x34\x85\xc0\x74", 7)) return 0;
     wnd_pp = *(DWORD **)VA(0x8599ad);

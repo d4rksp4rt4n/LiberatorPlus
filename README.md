@@ -18,6 +18,16 @@ Author: DarkSpartan
 
 Always start the game from Steam. Starting `VD_BHIKKHUNI.exe` directly crashes a few seconds in, with or without the mod.
 
+### Steam Deck and Linux (Proton)
+
+Not tested yet; reports welcome. Proton only loads `dinput8.dll` when told to, and `Set4GB.bat` does not run there, so instead:
+
+1. Copy `dinput8.dll` and `vdmod.ini` into `DeploymentRoot` as above (skip `Set4GB.bat`).
+2. In Steam, right-click the game > **Properties** > **Launch Options**, and enter:
+   `WINEDLLOVERRIDES="dinput8=n,b" PROTON_FORCE_LARGE_ADDRESS_AWARE=1 %command%`
+   The first part loads the mod, the second gives the game 4 GB of memory.
+3. In `vdmod.ini`, set `LargeAddressAware=0`, so the mod doesn't show the 4 GB reminder at every start.
+
 ## What it does
 
 All fixes are switched in `vdmod.ini`: close the game, edit, start the game again. `0` turns a fix off and gives the original behaviour. Each option is explained in the file itself. After every start, `vdmod.log` lists each fix as `on`, `off` or `SKIPPED`.
@@ -25,7 +35,7 @@ All fixes are switched in `vdmod.ini`: close the game, edit, start the game agai
 | Area | Options |
 | --- | --- |
 | Frame rate | `FrameRate` (60 to 240), `PreciseLimiter`, `ForceVSyncOff`, `PhysicsRate` (hair and bust physics behave as at 30 fps) |
-| Graphics | `MipFix` (no distant shimmer), `Anisotropy`, `MSAAFix` (no white flashes on thin edges), `BlackWallFix` (no black patches on walls), `ShadowResolution`, `MaxResolution` (fullscreen up to 4K with DSR/VSR) |
+| Graphics | `MipFix` (no distant shimmer), `Anisotropy`, `MSAAFix` (no white flashes on thin edges), `BlackWallFix` (no black patches on walls), `ShadowResolution`, `MaxResolution` (fullscreen up to 4K with DSR/VSR; never more than the display supports) |
 | Gallery | `GalleryHDFit` (HD CGs at screen size), `GalleryZoom` (fit to screen, zoom to 1:1, full panning) |
 | Boot and menus | `SkipIntro`, `FastDlcCheck`, `SkipRoomRanking` (no "Server Connect" box after the Dressing Room) |
 | Memory | `LargeAddressAware` (warns at game start when the 4 GB flag is missing, for example after a Steam update) |
