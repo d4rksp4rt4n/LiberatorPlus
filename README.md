@@ -54,15 +54,3 @@ The game exe on disk is never changed, except for the 4 GB memory flag. Every fi
 ## Uninstall
 
 Delete `dinput8.dll`, `vdmod.ini`, `Set4GB.bat` and `vdmod.log` from `DeploymentRoot`, then run **Verify integrity of game files** in Steam. That also puts back the original textures, CGs and movie, and clears the 4 GB flag.
-
-## License
-
-Copyright (c) 2026 DarkSpartan
-
-Liberator+ is free. You may use, copy, modify and share it, in whole or in part, including in other mods, as long as this notice stays with it. It may not be sold or offered only behind a paywall.
-
-THE MOD IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, INCLUDING LOSS OF SAVE DATA, ARISING FROM OR IN CONNECTION WITH THE MOD OR ITS USE. Back up your saves; use at your own risk.
-
-Liberator+ is an unofficial fan project. It is not affiliated with, endorsed or supported by Meteorise, Marvelous, or any other developer or publisher of Valkyrie Drive -Bhikkhuni-. Do not contact them for support with the mod.
-
-Valkyrie Drive -Bhikkhuni-, its characters, artwork, movies and all other game content belong to their respective owners. The optional packs contain modified game data and are meant only for use with a legally owned copy of the game.
