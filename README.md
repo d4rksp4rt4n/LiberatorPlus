@@ -54,3 +54,8 @@ The game exe on disk is never changed, except for the 4 GB memory flag. Every fi
 ## Uninstall
 
 Delete `dinput8.dll`, `vdmod.ini`, `Set4GB.bat` and `vdmod.log` from `DeploymentRoot`, then run **Verify integrity of game files** in Steam. That also puts back the original textures, CGs and movie, and clears the 4 GB flag.
+
+## AI use
+
+This mod was made with help from an AI coding assistant (Claude Code).
+
