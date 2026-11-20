@@ -690,8 +690,18 @@ static int fix_resolution(const char *s) {
     if (sscanf_s(s, "%dx%d", &res_w, &res_h) != 2 || res_w < 640 || res_h < 360 || res_w > 8192 || res_h > 8192) return -1;
     cap_to_display();
     if (!is(bld->res_site, "\x33\xc0\x66\x89\x43\x16", 6) || !is(0x8599a8, "\x80\x7d\xff\x00\xa1", 5) ||
-        !is(0x8599b1, "\x8b\x78\x28\x8b\x58\x2c\x0f\x84", 8) || !is(0x859a17, "\x50\xff\x51\x34\x85\xc0\x74", 7)) return 0;
+        !is(0x8599b1, "\x8b\x78\x28\x8b\x58\x2c\x0f\x84", 8) || !is(0x859a17, "\x50\xff\x51\x34\x85\xc0\x74", 7) ||
+        !is(0x8539d9, "\x8b\x46\x28\x89\x46\x20\x8b\x46\x2c", 9) || !is(0x853a51, "\x8b\x46\x28", 3) ||
+        !is(0x853a60, "\x8b\x46\x2c\x89\x46\x24", 6)) return 0;
     wnd_pp = *(DWORD **)VA(0x8599ad);
+    /* The window's resize handler (WM_SIZE, 0x853940) sets the render size [wnd+20h/24h] to the desktop
+       size [wnd+28h/2Ch] in fullscreen/borderless, since the game always rendered at the desktop size.
+       The mouse code scales clicks by window size / render size ([wnd+10h] / [wnd+20h], 0x7939aa and
+       0x794ec0), so at 3840x2160 on a 1920x1080 desktop every click landed twice too far from the
+       corner (Dressing Room heart catch). Take the render size from the window size instead: equal to
+       the desktop size whenever the display mode isn't switched, the chosen size when it is. */
+    put(VA(0x8539db), "\x10", 1); put(VA(0x8539e1), "\x14", 1);
+    put(VA(0x853a53), "\x10", 1); put(VA(0x853a62), "\x14", 1);
     call_at(bld->res_site, res_stub, 6);
     call_at(0x8599a8, fs_stub, 15);
     call_at(0x859a18, rb_stub, 5);
