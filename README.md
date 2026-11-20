@@ -1,4 +1,4 @@
-# Liberator+ 1.0.0
+# Liberator+ 1.0.1
 
 Fixes and options for **Valkyrie Drive -Bhikkhuni-** on PC (Steam): higher frame rates, sharper textures, rendering bug fixes, 4K output and quality-of-life tweaks. Optional packs add HD CGs, mipmapped stage textures and a 4K opening movie.
 
